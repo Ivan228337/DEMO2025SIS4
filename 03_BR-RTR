@@ -1,0 +1,90 @@
+
+==========BR-RTR==========
+admin/admin
+
+https://www.rdp.ru/doc/ED/ER_UserGuide.pdf
+
+-------РёРјСЏ С…РѕСЃС‚Р°---------
+
+ecorouter>en
+ecorouter#configure terminal
+ecorouter(config)#hostname BR-RTR.au-team.irpo
+BR-RTR.au-team.irpo(config)#ip domain-name au-team.irpo
+
+-------РЅР°СЃС‚СЂРѕР№РєР° NTP/DNS---------
+
+	(config)#ip name-server 192.168.1.10
+	(config)#ntp timezone utc+3
+
+-------РЅР°СЃС‚СЂРѕР№РєР° РЈР— net_admin---------3.3 РЎРѕР·РґР°РЅРёРµ СѓС‡РµС‚РЅС‹С… Р·Р°РїРёСЃРµР№ РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№
+
+	(config)#username net_admin
+	(config-user)#password P@$$word 
+	(config-user)#role admin
+	(config-user)#exit
+
+-------РЅР°СЃС‚СЂРѕР№РєР° Service Instance-------4.9 Service Instance
+
+	(config)#port te0
+	(config-port)#service-instance te0/isp-br
+	(config-service-instance)#encapsulation untagged  
+	(config-service-instance)#exit
+	(config-port)#exit
+
+	(config)#port te1
+	(config-port)#service-instance te1/br-net
+	(config-service-instance)#encapsulation untagged	
+	(config-service-instance)#exit
+	(config-port)#exit
+	
+-------РЅР°СЃС‚СЂРѕР№РєР° Р°РґСЂРµСЃР°С†РёРё РёРЅС‚РµСЂС„РµР№СЃРѕРІ-------------
+
+	(config)#interface isp-br
+	(config-if)#ip nat outside
+	(config-if)#ip address 172.16.5.5/28
+	(config-if)#connect port te0 service-instance te0/isp-br
+	(config-if)#exit
+
+	(config)#interface br-net
+	(config-if)# ip nat inside
+	(config-if)#ip address 192.168.3.1/27
+	(config-if)# connect port te1 service-instance te1/br-net
+
+
+-------РЅР°СЃС‚СЂРѕР№РєР° NAT---------28 Р’СЃС‚СЂРѕРµРЅРЅС‹Р№ NAT
+
+	(config)#ip nat pool nat 192.168.3.1-192.168.3.254
+	(config)#ip nat source dynamic inside-to-outside pool nat overload interface isp-br
+
+
+-------РЅР°СЃС‚СЂРѕР№РєР° РјР°СЂС€СЂСѓС‚Р° РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ---------13.4.4 РњР°СЂС€СЂСѓС‚ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ
+
+	(config)#ip route 0.0.0.0/0 172.16.5.1 description default
+
+-------РЅР°СЃС‚СЂРѕР№РєР° С‚СѓРЅРЅРµР»СЏ GRE---------15.1 GRE
+
+	(config)#interface tunnel.1
+	(config-if-tunnel)#ip add 192.168.5.2/30
+	(config-if-tunnel)#ip tunnel 172.16.5.5 172.16.4.4 mode gre
+	(config-if-tunnel)#ip ospf authentication
+	(config-if-tunnel)#ip ospf authentication-key P@$$word
+	(config-if-tunnel)#exit
+
+-------РЅР°СЃС‚СЂРѕР№РєР° OSPF---------13.4 РќР°СЃС‚СЂРѕР№РєР° OSPF
+
+	(config)#router ospf 1
+	(config-router)#network 192.168.5.0/30 area 0
+	(config-router)#network 192.168.3.0/27 area 0
+	(config-router)#passive-interface default
+	(config-router)#no passive-interface tunnel.1
+	(config-router)#exit
+	(config)#exit
+
+-------РєРѕРјР°РЅРґС‹ РїСЂРѕРІРµСЂРєРё---------
+
+
+HQ-RTR.au-team.irpo#write 
+HQ-RTR.au-team.irpo#show ip interface brief
+HQ-RTR.au-team.irpo#show port brief 
+HQ-RTR.au-team.irpo#sh ip route
+HQ-RTR.au-team.irpo#sh running-config 
